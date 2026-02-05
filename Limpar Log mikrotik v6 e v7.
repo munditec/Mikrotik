@@ -1,0 +1,2 @@
+/system logging action set [find where name="memory"] memory-lines=1
+/system logging action set [find where name="memory"] memory-lines=60000
