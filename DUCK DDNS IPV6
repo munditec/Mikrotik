@@ -1,10 +1,10 @@
 #-------------------------------------------------------------------------------
-# Script: Atualização DuckDNS IPv6 para MikroTik
+# Script: Atualização DuckDNS IPv6 para MikroTik  V6.49 e V7.2
 # Descrição: Captura o prefixo IPv6 de uma interface e atualiza o DDNS DuckDNS.
 # Autor: munditec (via GitHub)
 #-------------------------------------------------------------------------------
 
-# CONFIGURAÇÕES - EDITE ESTES CAMPOS
+# CONFIGURAÇÕES - EDITE APENAS ESTAS TRES VARIAVEIS.
 :local dhcpClientName "ether1"         ;# Nome da interface onde o DHCPv6 Client está rodando
 :local duckDomain "SEU_DOMINIO"        ;# Apenas a parte inicial (ex: 'meudominio' para meudominio.duckdns.org)
 :local duckToken "SEU_TOKEN_AQUI"      ;# O token que você encontra no painel do DuckDNS
