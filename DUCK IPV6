@@ -1,0 +1,66 @@
+#-------------------------------------------------------------------------------
+# Script: Atualização DuckDNS IPv6 para MikroTik
+# Descrição: Captura o prefixo IPv6 de uma interface e atualiza o DDNS DuckDNS.
+# Autor: munditec (via GitHub)
+#-------------------------------------------------------------------------------
+
+# CONFIGURAÇÕES - EDITE ESTES CAMPOS
+:local dhcpClientName "ether1"         ;# Nome da interface onde o DHCPv6 Client está rodando
+:local duckDomain "SEU_DOMINIO"        ;# Apenas a parte inicial (ex: 'meudominio' para meudominio.duckdns.org)
+:local duckToken "SEU_TOKEN_AQUI"      ;# O token que você encontra no painel do DuckDNS
+
+# VARIÁVEIS INTERNAS
+:local ipv6prefix ""
+:local ipFile "ipv6store.txt"
+
+# CAPTURAR PREFIXO IPv6 DO DHCPv6 CLIENT
+:foreach d in=[/ipv6 dhcp-client find where interface=$dhcpClientName and status="bound"] do={
+    :set ipv6prefix [/ipv6 dhcp-client get $d prefix]
+}
+
+# VALIDAR SE ENCONTROU ALGO
+:if ($ipv6prefix = "") do={
+    :log error "DuckDNS IPv6: Nenhum prefixo IPv6 encontrado na interface $dhcpClientName"
+    :exit
+}
+
+# REMOVER MÁSCARA DO PREFIXO (ex.: ::/56 -> ::)
+:local ipv6clean [:pick $ipv6prefix 0 [:find $ipv6prefix "/"]]
+
+# SE ARQUIVO NÃO EXISTE, CRIAR
+:if ([:len [/file find where name=$ipFile]] = 0) do={
+    /file print file=$ipFile;
+    :delay 1;
+    /file set $ipFile contents="::"
+}
+
+# CARREGAR IPV6 ANTERIOR
+:local previousIP [/file get $ipFile contents]
+
+# VERIFICAR SE MUDOU
+:if ($ipv6clean != $previousIP) do={
+
+    :log warning "DuckDNS IPv6: Novo IPv6 detectado: $ipv6clean (anterior: $previousIP)"
+
+    # ATUALIZAR O DUCKDNS
+    /tool fetch \
+        url=("https://www.duckdns.org/update?domains=".$duckDomain."&token=".$duckToken."&ipv6=".$ipv6clean) \
+        keep-result=yes dst-path="duckdns6-result.txt"
+
+    :delay 2
+    
+    :local result [/file get "duckdns6-result.txt" contents]
+
+    # SALVAR NOVO IPV6
+    /file set $ipFile contents=$ipv6clean
+
+    # LOG DE RESULTADO
+    :if ($result = "OK") do={
+        :log warning "DuckDNS IPv6 atualizado com sucesso: $ipv6clean"
+    } else={
+        :log error "DuckDNS IPv6 falhou! Resposta DuckDNS: $result"
+    }
+
+} else={
+    # :log info "DuckDNS IPv6: Nenhuma mudança necessária."
+}
